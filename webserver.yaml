@@ -1,6 +1,6 @@
 ---
   - name: Create webpage, install webserver and publish some server facts on the webpage
-    hosts: webserver
+    hosts: all
     vars:
       index_file: /home/index.html
       http_port: 8080
@@ -87,7 +87,7 @@
           var: web_content
 
   - name: Test the configuration of the webserver
-    hosts: webserver
+    hosts: all
     vars:
       http_port: 8080
       index_file: /home/index.html

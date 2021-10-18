@@ -18,8 +18,8 @@
           echo "Display Server facts :)" >> {{index_file}}
           uname -r >> {{index_file}}
           uname -v >> {{index_file}}
-          df -h >> {{index_file}}
-        when: contents["stdout_lines"] | length > 0
+          df -h {{index_file}} >> {{index_file}}
+        when: contents["stdout_lines"] | length == 0
 
       - name: Install and configure apache2
         block:

@@ -1,0 +1,136 @@
+---
+  - name: Create webpage, install webserver and publish some server facts on the webpage
+    hosts: webserver
+    vars:
+      index_file: /home/index.html
+      http_port: 8080
+      http_host: webdomain
+    tasks:
+      - name: Create an index file
+        file: path={{index_file}} state=touch
+
+      - name: Read content of {{index_file}}
+        shell: cat {{index_file}}
+        register: contents
+
+      - name: Gather server facts
+        shell: |
+          echo "Display Server facts :)" >> {{index_file}}
+          uname -r >> {{index_file}}
+          uname -v >> {{index_file}}
+          df -h >> {{index_file}}
+        when: contents["stdout_lines"] | length > 0
+
+      - name: Install and configure apache2
+        block:
+          - apt: name=apache2 state=latest update_cache=yes
+
+          - name: Create document root for web domain
+            file:
+              path: "/var/www/{{ http_host }}"
+              state: directory
+
+          - name: Copy created index page to web domain directory
+            command: cp {{index_file}} /var/www/{{ http_host }}/index.html
+
+          - name: Add port in apache ports config file
+            lineinfile:
+              path: "/etc/apache2/ports.conf"
+              line: Listen {{http_port}}
+              insertbefore: BOF
+
+          - name: Set up virtuahHost
+            blockinfile:
+              path: "/etc/apache2/sites-available/000-default.conf"
+              content: |
+                <VirtualHost *:{{ http_port }}>
+                        ServerAdmin webmaster@localhost
+                        DocumentRoot /var/www/{{ http_host }}
+                        ErrorLog ${APACHE_LOG_DIR}/error.log
+                        CustomLog ${APACHE_LOG_DIR}/access.log combined
+                </VirtualHost>
+              backup: yes
+
+          - name: Restart apache2
+            service:
+              name: apache2 
+              state: restarted
+        when: ansible_facts['distribution'] == 'Ubuntu' or ansible_facts['distribution'] == 'Debian'
+
+      - name: Install and configure httpd
+        block:
+          - yum: name=httpd state=latest update_cache=yes
+
+          - name: Copy created index page to default web directory
+            command: cp {{index_file}} /var/www/html/index.html
+
+          - name: Add port in httpd ports config file
+            lineinfile:
+              path: "/etc/httpd/conf/httpd.conf"
+              line: Listen {{http_port}}
+              insertbefore: BOF
+
+          - name: Restart httpd
+            service:
+              name: httpd
+              state: restarted
+        when: ansible_facts['distribution'] == 'CentOS'  or ansible_facts['distribution'] == 'Fedora'
+
+      - name: Publish the web page on new http port
+        uri:
+          url: http://localhost:{{http_port}}
+          method: GET
+          return_content: yes
+        register: web_content
+
+      - debug:
+          var: web_content
+
+  - name: Test the configuration of the webserver
+    hosts: webserver
+    vars:
+      http_port: 8080
+      index_file: /home/index.html
+      download_topath: /tmp/
+
+    tasks:
+      - name: Check if wget package is installed on Ubuntu/Debian server
+        command: dpkg-query -l wget
+        ignore_errors: yes
+        register: package_check
+        when: ansible_facts['distribution'] == 'Ubuntu' or ansible_facts['distribution'] == 'Debian'
+
+      - name: Install wget on Ubuntu/Debian server if not already present
+        apt:
+          name: wget
+          state: present
+        when:
+          - ansible_facts['distribution'] == 'Ubuntu' or ansible_facts['distribution'] == 'Debian'
+          - package_check.stdout == ""
+
+      - name: Check if wget package is installed on Centos/Fedora server
+        yum:
+          list: wget
+        register: package_check
+        when: ansible_facts['distribution'] == 'CentOS' or ansible_facts['distribution'] == 'Fedora'
+
+      - name: Install wget on Centos/Fedora server if not already present
+        yum: name=httpd state=present
+        when:
+          - ansible_facts['distribution'] == 'CentOS'  or ansible_facts['distribution'] == 'Fedora'
+          - package_check.results[0].yumstate != 'installed'
+
+      - name: Download the default index file
+        get_url:
+          url: http://localhost:{{http_port}}
+          dest: "{{download_topath}}"
+
+      - name: compare the generated and downloaded index files
+        shell: diff {{index_file}} {{download_filepath}}/index.html
+        register: diff_output
+        ignore_errors: yes
+
+      - name: Display an error message if the two index files are not identical
+        fail:
+          msg: "Oops:(:( The downloaded index file from the webserver is different from the generated file on the disk !!!"
+        when: "diff_output.rc == 1"

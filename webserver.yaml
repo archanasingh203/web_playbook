@@ -126,7 +126,7 @@
           dest: "{{download_topath}}"
 
       - name: compare the generated and downloaded index files
-        shell: diff {{index_file}} {{download_filepath}}/index.html
+        shell: diff {{index_file}} {{download_topath}}/index.html
         register: diff_output
         ignore_errors: yes
 

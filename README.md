@@ -9,20 +9,26 @@ Pre-requisites
   Sample /etc/ansible/hosts file-
 
   [webserver]
+  
   {Host IP} ansible_user={user} ansible_ssh_pass={pwd}
 
 - Host machines are accessible to Ansible controller via ssh.
 
   $ ansible all -m ping
-
-  172.17.0.2 | SUCCESS => {
+    
+    172.17.0.2 | SUCCESS => {
+    
       "ansible_facts": {
+      
           "discovered_interpreter_python": "/usr/bin/python"
       }, 
+      
       "changed": false, 
+      
       "ping": "pong"
-  }
-
+      
+    }
+  
 - Make sure HTTP is allowed on the port 8080 otherwise UFW module can be used to manage firewall.
 
 Playbook description
@@ -31,14 +37,14 @@ Playbook description
 ** Variables: http_port, index_filepath, http_host, download_topath
 
 ** Playbook comprises of two plays and is supported for Ubuntu/Debian/Centos/Fedora hosts:
- - Play 1: Create webpage, install webserver and publish some server facts on the webpage
+- Play 1: Create webpage, install webserver and publish some server facts on the webpage
  
   + Create customize webpage for http server
   + Collect kernel, datetime, disk info for the hosts and include on webpage
   + Install and Configure webserver
   + Publish the generated webpage on port 8080 instead of default port 80
 
- - Play 2: Test the configuration of the webserver
+- Play 2: Test the configuration of the webserver
 
   + Install wget on remote host if the package is not already present.
   + Compare the webserver hosted webpage with created index file. 
@@ -46,10 +52,9 @@ Playbook description
 Playbook Execution
 ------------------
 
-Example: Execute playbook from ansible controller for ubuntu host machine
+Example: Execute playbook from ansible controller for ubuntu host machine.
 
-[etc/ansible/playbooks]$ ansible-playbook -i ../hosts webserver.yaml 
-
+$ ansible-playbook -i ../hosts webserver.yaml 
 
 PLAY [Create webpage, install webserver and publish some server facts on the webpage] *****************************************
 
@@ -64,8 +69,6 @@ changed: [172.17.0.2]
 
 TASK [apt] ********************************************************************************************************************
 [WARNING]: Updating cache and auto-installing missing dependency: python3-apt
-
-[WARNING]: Could not find aptitude. Using apt-get instead
 
 changed: [172.17.0.2]
 

@@ -1,16 +1,14 @@
-import os,sys 
 
-def DoSomething(x,y):
-  if x==None:
+def DoSomething(x, y):
+  if x is None:
       print("Invalid value for x")
+      return
 
-  if y==0:
+  if y != 0:
       result = x / y
       print(result)
   else:
-      print ("y is not zero")
-
-  return
+      print("y is not zero")
 
 class sampleClass:
  def __init__(self,name):
